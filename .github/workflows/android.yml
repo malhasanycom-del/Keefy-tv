@@ -1,4 +1,4 @@
-name: Build Keefy TV APK
+name: Build Keefy TV for Android only
 on:
   workflow_dispatch:
   push:
