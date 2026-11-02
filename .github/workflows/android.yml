@@ -14,12 +14,13 @@ jobs:
         with:
           channel: stable
           cache: true
+      - uses: android-actions/setup-android@v3
       - name: Generate Android project
         run: flutter create --platforms=android --org com.keefytv .
       - name: Configure Android SDK compatibility
         run: |
-          yes | sdkmanager --licenses >/dev/null
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager --install "platforms;android-36" "build-tools;36.0.0"
           python3 - <<'PY'
           from pathlib import Path
           p = Path("android/app/build.gradle.kts")
