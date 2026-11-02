@@ -14,35 +14,48 @@ jobs:
         with:
           channel: stable
           cache: true
-      - uses: android-actions/setup-android@v3
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+          accept-android-sdk-licenses: true
       - name: Generate Android project
         run: flutter create --platforms=android --org com.keefytv .
-      - name: Configure Android SDK compatibility
+      - name: Install required Android platform
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
           sdkmanager --install "platforms;android-36" "build-tools;36.0.0"
           python3 - <<'PY'
           from pathlib import Path
-          p = Path("android/app/build.gradle.kts")
-          if p.exists():
-              s = p.read_text()
+          gradle_kts = Path("android/app/build.gradle.kts")
+          gradle = Path("android/app/build.gradle")
+          if gradle_kts.exists():
+              s = gradle_kts.read_text()
               s = s.replace("compileSdk = flutter.compileSdkVersion", "compileSdk = 36")
-              p.write_text(s)
-          else:
-              p = Path("android/app/build.gradle")
-              s = p.read_text()
+              gradle_kts.write_text(s)
+          elif gradle.exists():
+              s = gradle.read_text()
               s = s.replace("compileSdkVersion flutter.compileSdkVersion", "compileSdkVersion 36")
-              p.write_text(s)
+              gradle.write_text(s)
+          else:
+              raise SystemExit("Android app Gradle file was not generated")
           PY
       - name: Resolve dependencies
         run: flutter pub get
       - name: Configure Android network access
         run: |
-          sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
-          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/src/main/AndroidManifest.xml")
+          s = p.read_text()
+          if "android.permission.INTERNET" not in s:
+              s = s.replace("<manifest", '<manifest\\n    <uses-permission android:name="android.permission.INTERNET" />', 1)
+          s = s.replace("<application", '<application android:usesCleartextTraffic="true"', 1)
+          p.write_text(s)
+          PY
       - name: Build release APK
         run: flutter build apk --release
-      - uses: actions/upload-artifact@v4
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
         with:
           name: keefy-tv-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
