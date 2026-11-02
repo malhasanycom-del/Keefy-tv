@@ -1,0 +1,5 @@
+import 'package:flutter/material.dart';
+import '../services/store.dart';
+import 'add_source.dart';
+class SourcesScreen extends StatefulWidget { const SourcesScreen({super.key}); @override State<SourcesScreen> createState()=>_S(); }
+class _S extends State<SourcesScreen>{@override Widget build(BuildContext context){final l=Store.sources();return Scaffold(appBar:AppBar(title:const Text('المصادر')),floatingActionButton:FloatingActionButton(onPressed:()async{await Navigator.push(context,MaterialPageRoute(builder:(_)=>const AddSourceScreen()));setState((){});},child:const Icon(Icons.add)),body:l.isEmpty?const Center(child:Text('ما في مصادر، اضغط +')):ListView(children:[for(final s in l)ListTile(leading:Icon(s.id==Store.active?.id?Icons.radio_button_checked:Icons.radio_button_off),title:Text(s.name),subtitle:Text(s.type.toUpperCase()),onTap:()async{await Store.setActive(s.id);setState((){});},trailing:IconButton(icon:const Icon(Icons.delete),onPressed:()async{l.remove(s);await Store.saveSources(l);await Store.removeSourceData(s.id);setState((){});} ))]));}}
