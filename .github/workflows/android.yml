@@ -18,7 +18,6 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools'
-          accept-android-sdk-licenses: true
       - name: Generate Android project
         run: flutter create --platforms=android --org com.keefytv .
       - name: Install required Android platform
@@ -44,13 +43,21 @@ jobs:
       - name: Configure Android network access
         run: |
           python3 - <<'PY'
+          import xml.etree.ElementTree as ET
           from pathlib import Path
           p = Path("android/app/src/main/AndroidManifest.xml")
-          s = p.read_text()
-          if "android.permission.INTERNET" not in s:
-              s = s.replace("<manifest", '<manifest\\n    <uses-permission android:name="android.permission.INTERNET" />', 1)
-          s = s.replace("<application", '<application android:usesCleartextTraffic="true"', 1)
-          p.write_text(s)
+          tree = ET.parse(p)
+          root = tree.getroot()
+          android = "{http://schemas.android.com/apk/res/android}"
+          permission = "android.permission.INTERNET"
+          if not any(e.get(android + "name") == permission for e in root.findall("uses-permission")):
+              ET.SubElement(root, "uses-permission", {android + "name": permission})
+          app = root.find("application")
+          if app is None:
+              raise SystemExit("Android application element missing")
+          app.set(android + "usesCleartextTraffic", "true")
+          ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
+          tree.write(p, encoding="utf-8", xml_declaration=True)
           PY
       - name: Build release APK
         run: flutter build apk --release
