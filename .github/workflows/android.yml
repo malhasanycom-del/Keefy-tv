@@ -16,6 +16,23 @@ jobs:
           cache: true
       - name: Generate Android project
         run: flutter create --platforms=android --org com.keefytv .
+      - name: Configure Android SDK compatibility
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android/app/build.gradle.kts")
+          if p.exists():
+              s = p.read_text()
+              s = s.replace("compileSdk = flutter.compileSdkVersion", "compileSdk = 36")
+              p.write_text(s)
+          else:
+              p = Path("android/app/build.gradle")
+              s = p.read_text()
+              s = s.replace("compileSdkVersion flutter.compileSdkVersion", "compileSdkVersion 36")
+              p.write_text(s)
+          PY
       - name: Resolve dependencies
         run: flutter pub get
       - name: Configure Android network access
