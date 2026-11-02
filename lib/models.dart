@@ -12,3 +12,9 @@ class Channel {
   Map toJson() => {'name': name, 'url': url, 'logo': logo, 'group': group, 'cmd': cmd, 'sourceId': sourceId};
   factory Channel.fromJson(Map j) => Channel(name: j['name'], url: j['url'] ?? '', logo: j['logo'] ?? '', group: j['group'] ?? 'عام', cmd: j['cmd'], sourceId: j['sourceId']);
 }
+
+class MediaItem {
+  final String id, name, url, poster, category, sourceId, type;
+  final String plot, year, rating, extension;
+  MediaItem({required this.id, required this.name, required this.url, required this.poster, required this.category, required this.sourceId, required this.type, this.plot='', this.year='', this.rating='', this.extension=''});
+}
