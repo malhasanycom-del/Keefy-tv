@@ -4,6 +4,7 @@ import 'add_source.dart';
 import 'channels.dart';
 import 'favorites.dart';
 import 'settings.dart';
+import 'media_catalog.dart';
 import 'sources.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -14,6 +15,8 @@ class HomeScreen extends StatelessWidget {
     final source = Store.active;
     final items = <(String, String, IconData, Widget)>[
       ('القنوات المباشرة', 'تصفح وشاهد قنواتك', Icons.live_tv_rounded, const ChannelsScreen()),
+      ('الأفلام', 'مكتبة الأفلام حسب التصنيف', Icons.movie_creation_rounded, const MediaCatalogScreen(type: 'movie')),
+      ('المسلسلات', 'المواسم والحلقات والتصنيفات', Icons.live_tv_rounded, const MediaCatalogScreen(type: 'series')),
       ('المفضلة', 'قنواتك المحفوظة', Icons.favorite_rounded, const FavoritesScreen()),
       ('مصادر التشغيل', 'إدارة قوائمك', Icons.dns_rounded, const SourcesScreen()),
       ('إضافة قائمة', 'M3U أو Xtream أو Stalker', Icons.add_link_rounded, const AddSourceScreen()),
