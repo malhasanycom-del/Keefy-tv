@@ -10,8 +10,8 @@ String _kind(String name, String group, String url) {
   final s = '${name.toLowerCase()} ${group.toLowerCase()} ${url.toLowerCase()}';
   const seriesWords = ['series','season','episode','tv show','مسلسل','مسلسلات','حلقة','حلقات','موسم','انمي','أنمي'];
   const movieWords = ['movie','movies','film','films','vod','افلام','أفلام','فيلم','سينما'];
-  if (seriesWords.any(s.contains) || RegExp(r's\d{1,2}e\d{1,2}|\b\d{1,2}x\d{1,2}\b', caseSensitive:false).hasMatch(s)) return 'series';
-  if (movieWords.any(s.contains) || RegExp(r'\.(mp4|mkv|avi|mov)(?:$|\?)',caseSensitive:false).hasMatch(url)) return 'movie';
+  if (seriesWords.any(s.contains) || RegExp(r's\\d{1,2}e\\d{1,2}|\\b\\d{1,2}x\\d{1,2}\\b', caseSensitive:false).hasMatch(s)) return 'series';
+  if (movieWords.any(s.contains) || RegExp(r'\\.(mp4|mkv|avi|mov)(?:$|\\?)',caseSensitive:false).hasMatch(url)) return 'movie';
   return 'live';
 }
 
@@ -22,7 +22,7 @@ Future<List<MediaItem>> loadMedia(Source source, String type) async {
   if (source.type == 'm3u') {
     final response = await http.get(Uri.parse(source.url), headers: {'Accept':'*/*','User-Agent':'KeefyTV/1.1'}).timeout(const Duration(seconds:60));
     if (response.statusCode < 200 || response.statusCode >= 300) throw Exception('فشل تحميل القائمة: HTTP ${response.statusCode}');
-    final lines = const LineSplitter().convert(utf8.decode(response.bodyBytes, allowMalformed:true).replaceFirst('\uFEFF',''));
+    final lines = const LineSplitter().convert(utf8.decode(response.bodyBytes, allowMalformed:true).replaceFirst('\\uFEFF',''));
     final result = <MediaItem>[];
     String? name; String poster=''; String category='عام'; String id='';
     for (final raw in lines) {
@@ -64,16 +64,41 @@ Future<List<MediaItem>> loadMedia(Source source, String type) async {
   return [for(final x in raw) MediaItem(id:'${x['series_id']}',name:'${x['name']??'بدون عنوان'}',url:'',poster:'${x['cover']??''}',category:cats['${x['category_id']}']??'غير مصنف',sourceId:source.id,type:'series',plot:'${x['plot']??''}',year:'${x['releaseDate']??''}',rating:'${x['rating']??''}')];
 }
 
+/// يحافظ على رقم الموسم القادم من بنية Xtream نفسها؛ عدم حفظ المفتاح كان
+/// يجعل كل الحلقات تظهر خطأً تحت الموسم الأول.
 Future<List<Map<String,dynamic>>> loadSeriesEpisodes(Source source, String seriesId) async {
-  final uri=Uri.parse('${source.url.replaceAll(RegExp(r'/+$'),'')}/player_api.php').replace(queryParameters:{'username':source.user,'password':source.pass,'action':'get_series_info','series_id':seriesId});
+  final base = source.url.replaceAll(RegExp(r'/+$'),'');
+  final uri=Uri.parse('$base/player_api.php').replace(queryParameters:{
+    'username':source.user,'password':source.pass,
+    'action':'get_series_info','series_id':seriesId,
+  });
   final r=await http.get(uri).timeout(const Duration(seconds:45));
   if(r.statusCode!=200) throw Exception('Xtream HTTP ${r.statusCode}');
   final data=jsonDecode(utf8.decode(r.bodyBytes,allowMalformed:true));
   final episodes=data is Map ? data['episodes'] : null;
   final out=<Map<String,dynamic>>[];
   if(episodes is Map) {
-    for(final season in episodes.values) {
-      if(season is List) for(final ep in season) { if(ep is Map) out.add(Map<String,dynamic>.from(ep)); }
+    episodes.forEach((seasonKey, seasonEpisodes) {
+      if(seasonEpisodes is! List) return;
+      for(final raw in seasonEpisodes) {
+        if(raw is Map) {
+          final ep=Map<String,dynamic>.from(raw);
+          ep['season_number'] ??= seasonKey.toString();
+          out.add(ep);
+        }
+      }
+    });
+  } else if(episodes is List) {
+    for(var seasonIndex=0; seasonIndex<episodes.length; seasonIndex++) {
+      final seasonEpisodes=episodes[seasonIndex];
+      if(seasonEpisodes is! List) continue;
+      for(final raw in seasonEpisodes) {
+        if(raw is Map) {
+          final ep=Map<String,dynamic>.from(raw);
+          ep['season_number'] ??= (seasonIndex+1).toString();
+          out.add(ep);
+        }
+      }
     }
   }
   return out;
