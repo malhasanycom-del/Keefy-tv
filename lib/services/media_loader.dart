@@ -10,8 +10,8 @@ String _kind(String name, String group, String url) {
   final s = '${name.toLowerCase()} ${group.toLowerCase()} ${url.toLowerCase()}';
   const seriesWords = ['series','season','episode','tv show','مسلسل','مسلسلات','حلقة','حلقات','موسم','انمي','أنمي'];
   const movieWords = ['movie','movies','film','films','vod','افلام','أفلام','فيلم','سينما'];
-  if (seriesWords.any(s.contains) || RegExp(r's\\d{1,2}e\\d{1,2}|\\b\\d{1,2}x\\d{1,2}\\b', caseSensitive:false).hasMatch(s)) return 'series';
-  if (movieWords.any(s.contains) || RegExp(r'\\.(mp4|mkv|avi|mov)(?:$|\\?)',caseSensitive:false).hasMatch(url)) return 'movie';
+  if (seriesWords.any(s.contains) || RegExp(r's\d{1,2}e\d{1,2}|\b\d{1,2}x\d{1,2}\b', caseSensitive:false).hasMatch(s)) return 'series';
+  if (movieWords.any(s.contains) || RegExp(r'\.(mp4|mkv|avi|mov)(?:$|\?)',caseSensitive:false).hasMatch(url)) return 'movie';
   return 'live';
 }
 
@@ -22,7 +22,7 @@ Future<List<MediaItem>> loadMedia(Source source, String type) async {
   if (source.type == 'm3u') {
     final response = await http.get(Uri.parse(source.url), headers: {'Accept':'*/*','User-Agent':'KeefyTV/1.1'}).timeout(const Duration(seconds:60));
     if (response.statusCode < 200 || response.statusCode >= 300) throw Exception('فشل تحميل القائمة: HTTP ${response.statusCode}');
-    final lines = const LineSplitter().convert(utf8.decode(response.bodyBytes, allowMalformed:true).replaceFirst('\\uFEFF',''));
+    final lines = const LineSplitter().convert(utf8.decode(response.bodyBytes, allowMalformed:true).replaceFirst('\uFEFF',''));
     final result = <MediaItem>[];
     String? name; String poster=''; String category='عام'; String id='';
     for (final raw in lines) {
